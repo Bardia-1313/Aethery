@@ -78,18 +78,30 @@ targetAbis.forEach { abi ->
     tasks.register<Exec>(taskName) {
         group = "build"
         description = "Builds Aether for Android $abi"
-        commandLine(
-            "powershell.exe",
-            "-ExecutionPolicy", "Bypass",
-            "-File", rootProject.file("core/build-android.ps1").absolutePath,
-            "-Abi", abi,
-        )
+
+        val isWindows = org.gradle.internal.os.OperatingSystem.current().isWindows
+        if (isWindows) {
+            commandLine(
+                "powershell.exe",
+                "-ExecutionPolicy", "Bypass",
+                "-File", rootProject.file("core/build-android.ps1").absolutePath,
+                "-Abi", abi,
+            )
+        } else {
+            commandLine(
+                "bash",
+                rootProject.file("core/build-android.sh").absolutePath,
+                "-Abi", abi,
+            )
+        }
+
         environment("ANDROID_HOME", android.sdkDirectory.absolutePath)
         inputs.dir(rootProject.file("core/aether/src"))
         inputs.file(rootProject.file("core/aether/Cargo.toml"))
         inputs.file(rootProject.file("core/aether/Cargo.lock"))
         inputs.dir(rootProject.file("core/quiche"))
         inputs.file(rootProject.file("core/build-android.ps1"))
+        inputs.file(rootProject.file("core/build-android.sh"))
         outputs.file(file("src/main/jniLibs/$abi/libaether.so"))
     }
     tasks.named("preBuild").configure { dependsOn(taskName) }
